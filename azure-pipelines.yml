@@ -7,24 +7,28 @@ pool:
   demands:
   - npm
 
-#variables:
-#  buildConfiguration: 'Release'
+# Azure Pipelines provides a number of built-in variables. These variables describe aspects of the build process, like the build identifier and the directory names where your software is built and staged. 
+# You can also define your own variables
+variables:
+  buildConfiguration: 'Release'
+  wwwrootDir: 'Tailspin.SpaceGame.Web/wwwroot'
+  dotnetSdkVersion: '3.1.300'
 
 # build tasks that maps to each of the script commands 
 steps:
 # specify the version it needs to use on the build agent.
 - task: UseDotNet@2
-  displayName: 'Use .NET Core SDK 3.1.300'
+  displayName: 'Use .NET Core SDK $(dotnetSdkVersion)'
   inputs:
     packageType: sdk
-    version: 3.1.300
+    version: '$(dotnetSdkVersion)'
 
 - task: Npm@1
   displayName: 'Run npm install'
   inputs:
     verbose: false
 
-- script: './node_modules/.bin/node-sass Tailspin.SpaceGame.Web/wwwroot --output Tailspin.SpaceGame.Web/wwwroot'
+- script: './node_modules/.bin/node-sass Tailspin.SpaceGame.Web/wwwroot --output $(wwwrootDir)'
   displayName: 'Compile Sass assets'
 
 - task: gulp@1
@@ -36,7 +40,7 @@ steps:
 # $(Build.BuildNumber) is name of the completed build. You can configure the format, but by default the build number includes the current date followed by the build number for that day.
 - script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
   displayName: 'Write build info'
-  workingDirectory: Tailspin.SpaceGame.Web/wwwroot
+  workingDirectory: $(wwwrootDir)
 
 - task: DotNetCoreCLI@2
   displayName: 'Restore project dependencies'
@@ -45,20 +49,20 @@ steps:
     projects: '**/*.csproj'
 
 - task: DotNetCoreCLI@2
-  displayName: 'Build the project - Release'
+  displayName: 'Build the project - $(buildConfiguration)'
   inputs:
     command: 'build'
-    arguments: '--no-restore --configuration Release'
+    arguments: '--no-restore --configuration $(buildConfiguration)'
     projects: '**/*.csproj'
 
 # task to publish, or package, the app's build results
 - task: DotNetCoreCLI@2
-  displayName: 'Publish the project - Release'
+  displayName: 'Publish the project - $(buildConfiguration)'
   inputs:
     command: 'publish'
     projects: '**/*.csproj'
     publishWebProjects: false
-    arguments: '--no-build --configuration Release --output $(Build.ArtifactStagingDirectory)/Release'
+    arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/Release'
     zipAfterPublish: true
 
 # task to publish the .zip file to Azure Pipelines 
